@@ -1,0 +1,20 @@
+*.pyc
+.ipynb_checkpoints/
+Data/*
+*.mp4
+*~ 
+
+# Compiled latex #
+###################
+*.aux
+*.log
+*.gz
+*.blg
+*.bbl
+*.toc
+*.fdb_latexmk
+*.fls
+
+# Latexed PDFs
+# =============
+motionArtifactNotes.pdf
