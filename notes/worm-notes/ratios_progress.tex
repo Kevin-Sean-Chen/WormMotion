@@ -1,0 +1,23 @@
+\subsection{Notes from emails}
+minimize the following for $\sigma_g$ and $\sigma_r$:
+
+Or take deriv wrt sigmas and solve for 0!
+Doesn't have a good solution
+
+\section{Testing on simulated data}
+When generating simulated data where ($\epsilon$ is some normally distributed noise):
+\[R = motion + \sigma_r*\epsilon\]
+\[G = motion * activity + \sigma_g*\epsilon\]
+We can recover the activity exactly by solving the roots of the derivative of eq 5, taking the third root, then computing the value of the root at each point in time (given the $\sigma_r$ and $\sigma_g$ that was used to calculate G and R). 
+--insert recovered_activity_root here--
+
+However if we do the same thing (find the sig_g and sig_r that maximize eq 5, then we get 0's). 
+
+\subsection{Things for Katherine to do:}
+* Look at taking derivative wrt sigmas (what does tractable mean) (If so, when I'm solving for one of the new sigmas should I just use the old value of the other sigma in the calculation?)
+
+Look at jonathan's matlab code, 
+
+Initalize a(t) using g(t)/r(t), fit sigmas, refit a(t)
+Why would that work? (if you refit with eq 5 then it should!)
+   

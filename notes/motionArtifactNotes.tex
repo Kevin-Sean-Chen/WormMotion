@@ -1,0 +1,576 @@
+\documentclass[11pt]{article}
+\usepackage[pdftex]{graphicx} 
+\usepackage[comma,numbers,sort&compress]{natbib} % round/square, authoryear/numbers
+\usepackage{amsfonts,amsmath,amssymb,amsthm} % various math stuff
+% \usepackage[compact]{titlesec}  % Allow compact titles
+\usepackage{sectsty} % Allows for section style to be manipulated
+\usepackage{wrapfig}  % Allow wrapping of text around figures
+\usepackage{mdwlist}  % Make list items closer together: itemize*, enumerate*
+\usepackage{sidecap}  % For putting caption beside figure
+\usepackage{url} % for web links
+\usepackage{bm,amsbsy}  % allows for bold greek chars and symbols using \bm{\mu} or \boldsymbol{\infty}
+
+% ==  FONT  ===========================
+% % ---- uncomment for Palatino -------------
+% \usepackage{palatino} 
+% ---- uncomment for Helvetica (sansserif)  -------------
+\usepackage[T1]{fontenc}
+\usepackage[scaled]{helvet}
+\renewcommand*\familydefault{\sfdefault}  % If the base font of the document is to be sans serif
+
+% ======= File locations =================
+\input{jpdefs} % define some useful latex commands
+%\newcommand{\figdir}{figs}  % fig directory
+
+% ---- Control paragraph spacing and indenting  -------------------
+\setlength{\textheight}{9in} % 11 - ( 1.5 + \topmargin + <bottom-margin> )
+\setlength{\textwidth}{6.5in} % 8.5 - 2 * ( 1 + \oddsidemargin )
+\setlength{\topmargin}{ -0.5in}  % in addition to 1.5'' standard margin
+\setlength{\oddsidemargin}{0in} % in addition to 1'' standard
+\setlength{\parindent}{0em}  % indentation 
+\setlength{\parskip}{1ex} % paragraph gap 
+\setlength{\headsep}{0.0in}
+\setlength{\headheight}{0.0in}
+% \raggedbottom  % allows pages to have differing text height 
+\allowdisplaybreaks  % allow multi-line equations to continue on the next page
+
+% % ----- Control for sectioning commands -------------------------
+% \renewcommand\baselinestretch{0.94}\large\normalsize
+% \titlespacing{\section}{0pt}{3pt}{-.5\parskip}   % Margin; Above; Below
+% \titlespacing{\subsection}{0pt}{*0}{-.5\parskip}
+% \titlespacing{\subsubsection}{0pt}{*0}{-.5\parskip}
+% \renewcommand{\refname}{References Cited}
+% \sectionfont{\large} 
+% \subsectionfont{\normalsize} 
+% \subsubsectionfont{\it}
+
+% ----- Float (figure) positioning --------------------------------------
+\setcounter{topnumber}{1}  % max # floats at top of page
+\setcounter{bottomnumber}{1} % max # at bottom of page
+\setcounter{totalnumber}{1} % max floats on a page
+\renewcommand{\topfraction}{1} % max frac for floats at top
+\renewcommand{\bottomfraction}{1} % max for floats at bottom
+\renewcommand{\textfraction}{0} % minimum fraction of page for text
+%\setlength{\textfloatsep}{.2in}  % separation between figure and text
+
+
+% -----  New definitions ------------------
+\newcommand{\figref}[1]{Fig.~\ref{fig:#1}}  % use for citing figs
+\renewcommand{\eqref}[1]{eq.~\ref{eq:#1}}
+
+% -----  Math symbols --------------------
+\newcommand{\LL}{\mathcal{L}}
+\newcommand{\vr}{\sigma^2_r}
+\newcommand{\vm}{\sigma^2_m}
+\newcommand{\vg}{\sigma^2_g}
+\newcommand{\va}{\sigma^2_a}
+\newcommand{\vecv}{\mathbf{v}}
+\newcommand{\vecm}{\mathbf{m}}
+\newcommand{\vx}{\mathbf{x}}
+\newcommand{\vecr}{\mathbf{r}}
+\newcommand{\vecg}{\mathbf{g}}
+\newcommand{\vones}{\mathbf{1}}
+\newcommand{\veca}{\mathbf{a}}
+\newcommand{\matA}{\mathbf{A}}
+\newcommand{\matD}{\mathbf{D}}
+\newcommand{\veps}{\mathbf{\epsilon}}
+\newcommand{\matC}{\mathbf{C}}
+\newcommand{\vecb}{\mathbf{b}}
+\newcommand{\vecx}{\mathbf{x}}
+\newcommand{\matM}{\mathbf{M}}
+\newcommand{\tA}{\tilde{\mathbf{A}}}
+\newcommand{\eye}{\mathbf{I}}
+\newcommand{\margmu}{\tilde{\mathbf{\mu}}}
+\newcommand{\matSig}{\mathbf{\Sigma}}
+% ====================================================
+\begin{document}
+% % ----- Math spacing commands that have to be within document ----------
+% \abovedisplayskip=2pt  % spacing above an equation
+% \belowdisplayskip=2pt  % spacing below an equation
+% %\abovedisplayshortskip=-5pt
+% % \belowdisplayshortskip=-5pt
+% % --------------------------------------------------------------
+
+
+% % --- Publication note ---------
+%\vbox to 0.2in{ \vspace{-.3in}
+% \small\tt  Draft Information
+% \vfil}
+
+% Title
+\title{Notes on motion artifact removal in C Elegans data}
+% \author{Jonathan W. Pillow}
+
+\maketitle
+
+\setspacing{1.1}
+\hbox to \textwidth{\hrulefill} 
+\vspace{-.1in}
+% Abstract
+Some notes on how to model the motion artifacts
+in GCaMP fluorescence measurements. (And, hopefully, remove them!) \\
+\hbox to \textwidth{\hrulefill}
+%--------------------------------------------------------------------------
+
+\vspace{.5in}
+
+\section{Basic setup}
+Our basic goal here is to develop a model of the measurement process
+and use that to perform inference for neural
+activity-related component of the measured GCaMP signal.
+
+Let us assume the following model, involving the measured RFP $r(t)$
+fluorescence, the measured GCaMP fluorescence $g(t)$, the ``true''
+motion artifact $m(t)$, and the activity-related GCaMP fluorescence:
+\begin{alignat}{2}
+\text{RFP: }\quad r(t) &= m(t) + \epsilon_r(t), \quad & & n_r \sim
+\Nrm(0,\vr)  \label{eq:rfp} \\
+\text{GCaMP: }\quad g(t) &= m(t)a(t)  + \epsilon_g(t), \quad & & n_g \sim
+\Nrm(0,\vg) \label{eq:gcamp}
+\end{alignat}
+This assumes that measured RFP is just the motion artifact plus noise
+(we neglect an unknown scaling constant, which is ok because it can be
+absorbed into an unknown scalar on the activity $a(t)$), and the
+measured GCaMP is the product of motion artifact and true
+activity-related fluorescence.  Noise in the measured $r(t)$ and
+$g(t)$ is modeled as indepedent and Gaussian with variances $\vr$ and
+$\vg$, respsectively.
+
+
+\subsection{Independent priors}
+
+To begin, let us place a Gaussian prior on the motion artifact and the neural activity:
+\begin{align}
+m(t) &\sim \Nrm(\mu_m, \vm) \label{eq:mprior} \\
+a(t) &\sim \Nrm(\mu_a, \va). \label{eq:aprior}
+\end{align}
+Note that for this model to be plausible we should have $\mu_m >
+2\sigma_m$ and $\mu_a > 2\sigma_a$ because $m(t)$ cannot take on
+negative values.
+
+\subsection{Inference} 
+Our goal is to infer $a(t)$ from our measurements $r(t)$ and $g(t)$,
+and the Bayesian approach is (naturally) to compute the posterior over
+$a(t)$ given our measurements, while marginalizing out the stuff we
+don't observe, namely $m(t)$.  Using Bayes' rule we can write the
+posterior of interest as:
+\begin{equation}
+P(a | r, g) \propto P(r,g | a) P(a),
+\end{equation}
+where \begin{equation}
+ P(r,g | a) = \int P(r, g, m | a)\, dm 
+\end{equation}
+represents the marginal likelihood of the measurements (with $m(t)$
+integrated out).  We have dropped time indices for notational simplicity.
+
+We can compute the marginal of interest by noting that $r$ and $g$ can
+be written in terms of a linear transformation of $m$ plus Gaussian noise:
+\begin{equation}
+\
+\begin{bmatrix}
+  r \\ g 
+\end{bmatrix} = 
+\begin{bmatrix}
+  1 \\ a 
+\end{bmatrix}m  + 
+\begin{bmatrix}
+  \epsilon_r \\ \epsilon_g.
+\end{bmatrix} 
+\end{equation}
+Since $m$ itself has a Gaussian distribution, we can apply the
+Gaussian (``fun fact'') identity to obtain:
+\begin{equation} \label{eq:iidmargli}
+\
+\begin{bmatrix}
+  r \\ g 
+\end{bmatrix} | \; a \sim \Nrm \Big( \vecv_a \mu_m,\,  \vm \vecv_a  \vecv_a\trp +
+\diag(\vr,\vg) \Big),  
+\end{equation}
+where $\vecv_a = [1\;\; a]\trp$, and $\diag(\vr,\vg)$ is a diagonal
+matrix with $\vr$ and $\vg$ along the diagonal.
+
+We can now do MAP inference for $a$ by maximizing the product of this
+distribution and the prior over $a$ (\eqref{aprior}) for the data in
+each time bin. This can be achieved by maximizing the log-posterior:
+\begin{equation}
+\log P(a|r,g) = -\tonehlf \log | C_a| - \tonehlf (\vx - \vecv_a \mu_m)\trp
+C_a\inv (\vx-\vecv_a\mu_m) 
+- \tonehlf \log |\va| - \tfrac{1}{2\va} (a-\mu_a)^2
+\end{equation}
+where $\vx = [r\;\; g]\trp$ is the measurement vector and the
+$a$-dependent 
+covariance is
+\begin{equation}
+C_a = 
+\begin{bmatrix}
+  \vm  + \vr \ &  a\vm  \\
+a\vm & a^2\vm + \vg
+\end{bmatrix},
+\end{equation}
+and we have neglected constants that do not depend on $a$.
+
+% \begin{equation}
+% P(r,g,m|a) = \frac{1}{(2\pi)^{3/2}\, \sigma_r \sigma_g \sigma_m} \exp
+% \left(-\frac{1}{2\vr}(r-m)^2 - \frac{1}{2\vg}(g-am)^2 -\frac{1}{2\vm}(m-\mu)^2
+% \right)
+% \end{equation}
+
+% The joint distribution of interest is
+% \begin{equation}
+% P(r(t), g(t), m(t),a(t)| \theta) = 
+%   \sigma_m}
+% \end{equation}
+% , i.e., $P(m(t)) \propto 1$, then
+%The joint distribution of $m(t)$  and $r(t)$ is 
+
+
+\section{Smoothness prior over motion}
+
+Suppose that we wish to place a temporal smoothness prior over the motion 
+artifact instead of the iid prior considered above:
+\begin{equation} \label{eq:mprior}
+\vecm \sim\mathcal{N}(\mu_m \vones,\Sigma_m),  
+\end{equation}
+where $\vecm = [m(1)\; \cdots\; m(T)]\trp$ denotes the vector of
+motion artifacts for a single neuron across all time bins, $\vones$ is
+a length-$T$ vector of ones, and $\Sigma_m$ denotes the prior
+covariance of $\vecm$ (e.g., given by a Gaussian process covariance
+function).
+
+Although this prior breaks conditional independence of the marginal
+likelihood (\eqref{iidmargli}), we can derive it using a similar
+approach, relying on the fact that $\vecr$ and $\vecg$, the vectors of
+observed rfp and gcamp measurements across time, respectively, can be written as
+linear functions of $\vecm$:
+\begin{equation}
+\
+\begin{bmatrix}
+  \vecr \\ \vecg 
+\end{bmatrix} = 
+\begin{bmatrix}
+  I \\ \diag(\veca)
+\end{bmatrix} \vecm  + 
+\begin{bmatrix}
+  \bm{\epsilon_r} \\ \bm{\epsilon_g}.
+\end{bmatrix} 
+\end{equation}
+
+Marginalizing over $\vecm$ leads to the following marginal likelihood:
+\begin{equation} \label{eq:iidmargli}
+\
+\begin{bmatrix}
+  \vecr \\ \vecg 
+\end{bmatrix} | \; \veca \sim \Nrm \left( 
+ \vecv_{\veca} ,\,  Q_{\veca} \Sigma_m Q_{\veca} \trp +  
+\diag ( \bm{\sigma^2_{rg}} )
+\right),  
+\end{equation}
+where the vector 
+$\vecv_\veca = \mu_m \begin{bmatrix}
+  \vones  \\  \veca
+\end{bmatrix} $, 
+the matrix
+$Q_{\veca} = \begin{bmatrix}
+  I \\ \diag(\veca)
+\end{bmatrix},
+$
+and 
+$\bm{\sigma^2_{rg}}  = 
+\begin{bmatrix} \vr \vones\trp &  \vg \vones\trp 
+\end{bmatrix}$ is the concatenated vector of observation noise
+variances for $\vecr$ and $\vecg$.
+
+Letting $\vx = \begin{bmatrix}  \vecr  \\ \vecg 
+\end{bmatrix}$, 
+we can evaluate the log marginal-likelihood
+\begin{multline} \label{eq:logmargliSmooth}
+\log P(\vecr,\vecg | \veca) = \\ -\tonehlf \log \Big|Q_{\veca} \Sigma_m Q_{\veca} \trp +  
+\diag ( \bm{\sigma^2_{rg}} ) \Big| - \tonehlf (\vx - \vecv_a)\trp
+(Q_{\veca} \Sigma_m Q_{\veca} \trp +  
+\diag ( \bm{\sigma^2_{rg}} )) \inv (\vx-\vecv_a)
+\end{multline}
+
+We can evaluate the log-determinant term using the (generalized)
+matrix-determinant lemma:
+\begin{equation}
+\text{\bf (1)\; } \log \Big|Q_{\veca} \Sigma_m Q_{\veca} \trp +  
+\diag ( \bm{\sigma^2_{rg}} ) \Big| = 
+\log \Big| \Sigma_m\inv + D \Big| + \log \Big| \Sigma_m \Big| + T\log (\vr \vg),
+\end{equation}
+where 
+\begin{equation}
+D = Q_\veca \trp 
+\diag ( \bm{\sigma^{-2}_{rg}} ) Q_\veca = 
+\diag\left( \frac{1}{\sigma^2_{r}}\vones   + \frac{1} {\sigma^2_{g}}\veca^2 \right), 
+\end{equation}
+which is a diagonal matrix with the vector $\left(\frac{1}{\sigma^2_r} +
+\frac{1}{ \sigma_g^2} \veca^2 \right)$ along the diagonal.
+
+This reduces the problem to taking determinants of $T \times T$
+matrices.  (If the motion artifact is not full rank, this can be
+reduced further to a matrix whose sidelength is the dimensionality of
+$\vecm$).  Of course, only the $\log | \Sigma_m\inv + D |$ term
+involves $\veca$, meaning the other two can be ignored.
+
+We can use the Sherman-Morrison-Woodbury formula (or ``matrix
+inversion lemma'') to perform a similar simplification of the
+quadratic term:
+\begin{multline}
+\text{\bf (2)\; } 
+\tonehlf (\vx - \vecv_a)\trp
+(Q_{\veca} \Sigma_m Q_{\veca} \trp +  
+\diag ( \bm{\sigma^2_{rg}} )) \inv (\vx-\vecv_a)  \\ 
+= \quad \tonehlf ((\vx - \vecv_a)\trp \diag({\bm{\sigma^{-2}_{rg}}}) (\vx - \vecv_a)
+- \tilde \vx \trp \Big(\Sigma_m\inv + D \Big)\inv \tilde \vx),
+%  \tonehlf (\vx - \vecv_a)\trp
+% \diag ( \bm{\sigma^{-2}_{rg}} ) (\vx-\vecv_a) \\
+% -  \tonehlf (\vx -\vecv_a)\trp  \diag ( \bm{\sigma^{-2}_{rg}} ) Q_\veca \Big(\Sigma_m\inv + D \Big)\inv Q_\veca \trp \diag (
+% \bm{\sigma^{-2}_{rg}} ) (\vx-\vecv_a).
+\end{multline}
+where 
+\begin{equation}
+\tilde \vx =   Q_\veca\trp  \diag ( \bm{\sigma^{2}_{rg}} )\inv (\vx -
+\vecv_a) =
+\begin{bmatrix}
+ \displaystyle \frac{1}{\sigma_r^2} \left(\vecr - \mu_m \vones\right)
+ + 
+ % \vspace{.1in} \\ 
+ \displaystyle \frac{\veca}{ \sigma_g^2} (\vecg -  \mu_m\veca)
+\end{bmatrix}.
+\end{equation}
+
+Putting it all together, we can find the MAP estimate for the activity
+$\veca$ by maximizing 
+\begin{equation}
+- \tonehlf \log | \Sigma_m\inv + D |\;  - \;
+\tonehlf (\vx - \vecv_a)\trp \diag({\bm{\sigma^{-2}_{rg}}}) (\vx - \vecv_a)
+\; +\;  \tonehlf \tilde \vx \trp \Big(\Sigma_m\inv + D \Big)\inv \tilde \vx.
+\label{eq:map}
+\end{equation}
+
+\textbf{Alternative Derivation (Lea):}
+
+We can start directly by marginalizing over $\vecm$, dropping all terms that do not depend on $\veca$:
+\begin{scriptsize}
+\begin{align*}
+p(\veca|\vx) &  \propto p(\veca) \int p(\vx|\vecm,\veca) p(\vecm) d \vecm \\ 
+& \propto p(\veca)  \int \exp[-\frac{1}{2}\{(\vx - Q_\veca \vecm)^\trp  \diag({\bm{\sigma^{-2}_{rg}}})(\vx - Q_\veca \vecm) + \vecm^\trp \Sigma_m^{-1} \vecm - 2 \vecm^\trp  \Sigma_m^{-1} \mu_m\}] d\vecm\\
+& \propto  p(\veca)\int \mathcal{N}((Q_\veca^\trp  \diag({\bm{\sigma^{-2}_{rg}}}) Q_\veca+ \Sigma_m^{-1})^{-1}(Q_\veca^\trp  \diag({\bm{\sigma^{-2}_{rg}}}) \vx + \Sigma^{-1} \mu_m), (Q_\veca^\trp  \diag({\bm{\sigma^{-2}_{rg}}}) Q_\veca+ \Sigma_m^{-1})^{-1})d\vecm\\
+& \times |\frac{1}{\sigma_r^2} I + \frac{1}{\sigma_g^2} \diag(\veca)^2 + \Sigma_m^{-1}|^{-\frac{1}{2}} \\
+& \times \exp[\frac{1}{2} (Q_\veca^\trp  \diag({\bm{\sigma^{-2}_{rg}}}) \vx + \Sigma^{-1} \mu_m)^\trp (Q_\veca^\trp  \diag({\bm{\sigma^{-2}_{rg}}}) Q_\veca+ \Sigma_m^{-1})^{-1} (Q_\veca^\trp  \diag({\bm{\sigma^{-2}_{rg}}}) \vx + \Sigma^{-1} \mu_m)]\\
+& \propto p(\veca) |\frac{1}{\sigma_r^2} I + \frac{1}{\sigma_g^2} \diag(\veca)^2 + \Sigma_m^{-1}|^{-\frac{1}{2}} \\
+& \times \exp[\frac{1}{2} (\frac{1}{\sigma_r^2} \vecr+ \frac{1}{\sigma_g^2} \diag(\veca) \vecg+ \Sigma^{-1} \mu_m))^\trp (\frac{1}{\sigma_r^2} I + \frac{1}{\sigma_g^2} \diag(\veca)^2 + \Sigma_m^{-1})^{-1} (\frac{1}{\sigma_r^2} \vecr+ \frac{1}{\sigma_g^2} \diag(\veca) \vecg+ \Sigma^{-1} \mu_m)]\\
+\end{align*}
+\end{scriptsize}
+where $p(\veca)$ is a (optional) prior over the activity. The expression inside the integral is the standard linear regression solution to the posterior over $\vecm$ and can be obtained by completing the square.
+The MAP estimate of the activity $\veca$ can be obtained by maximizing
+\begin{align*}
+& - \tonehlf \log | \Sigma_m^{-1} + D |\;  + \;
+\tonehlf (\frac{1}{\sigma_r^2} \vecr+ \frac{1}{\sigma_g^2} \diag(\veca) \vecg+ \Sigma^{-1} \mu_m))^\trp (\Sigma_m^{-1} + D)^{-1} (\frac{1}{\sigma_r^2} \vecr+ \frac{1}{\sigma_g^2} \diag(\veca) \vecg+ \Sigma^{-1} \mu_m) \\
+& \qquad  + \log(p(\veca)).
+\end{align*}
+
+\textbf{Equivalence of derivations:}
+
+To show that the two approaches yield the same MAP solution, we can note that:
+\begin{align*}
+\tilde \vx& =   Q_\veca\trp  \diag ( \bm{\sigma^{2}_{rg}} )\inv (\vx -\vecv_a)=(\frac{1}{\sigma_r^2} \vecr+ \frac{1}{\sigma_g^2} \diag(\veca) \vecg) - D \mu_m\\
+\vecv_a & = Q_\veca \mu_m\\
+(\vx - \vecv_a)\trp \diag({\bm{\sigma^{-2}_{rg}}}) (\vx - \vecv_a)& = \mu_m^\trp D \mu_m - 2 \mu_m^\trp \frac{1}{\sigma_g^2} \diag(\veca) \vecg - 2 \mu_m^\trp \frac{1}{\sigma_r^2} \vecr + const.\\
+&
+\end{align*}
+Further, let $\hat{\vx} = (\frac{1}{\sigma_r^2} \vecr+ \frac{1}{\sigma_g^2} \diag(\veca) \vecg)$ and note that D is invertible. Then we can re-write equation (\ref{eq:map}) using the above:
+\begin{align*}
+&-\tonehlf (\vx - \vecv_a)\trp \diag({\bm{\sigma^{-2}_{rg}}}) (\vx - \vecv_a)
+\; +\;  \tonehlf \tilde \vx \trp \Big(\Sigma_m\inv + D \Big)\inv \tilde \vx\\
+& = -\tonehlf (\mu_m^\trp D \mu_m - 2 \mu_m^\trp\hat{\vx} -\hat{\vx}^\trp(\Sigma^{-1} + D)^{-1}\hat{\vx} - \mu_m^\trp D (\Sigma^{-1} + D)^{-1} D \mu_m + 2 \mu_m^\trp D(\Sigma^{-1} + D)^{-1} \hat{\vx} )\\
+& = -\tonehlf (- \hat{\vx}^\trp(\Sigma^{-1} + D)^{-1}\hat{\vx} + \mu_m^\trp ( D - D (\Sigma^{-1} + D)^{-1} D) \mu_m -2 \mu_m^\trp( D- D(\Sigma^{-1} + D)^{-1} D) D^{-1} \hat{\vx} )\\
+\end{align*}
+Applying again the matrix inversion lemma, we can write:
+\[
+ -\tonehlf ( -\hat{\vx}^\trp(\Sigma^{-1} + D)^{-1}\hat{\vx} + \mu_m^\trp (\Sigma+ D^{-1})^{-1} \mu_m -2 \mu_m^\trp( \Sigma + D^{-1} )^{-1} D^{-1} \hat{\vx} )
+\]
+Now, writing $\mu_m = \Sigma \Sigma^{-1} \mu_m$ and adding $-\tonehlf \mu_m ^\trp \Sigma^{-1} \mu_m$ (this is a constant in $\veca$, so doing this doesn't affect the MAP solution), we can re-write the above as:
+\begin{align*}
+& =  -\tonehlf (- \hat{\vx}^\trp(\Sigma^{-1} + D)^{-1}\hat{\vx} - \mu_m^\trp \Sigma^{-1}(\Sigma - \Sigma(\Sigma+ D^{-1})^{-1}\Sigma)\Sigma^{-1}\mu_m -2 \mu_m^\trp \Sigma^{-1}(\Sigma ( \Sigma + D^{-1} )^{-1}) D^{-1} \hat{\vx} )\\
+& =  \tonehlf ( \hat{\vx}^\trp(\Sigma^{-1} + D)^{-1}\hat{\vx} + \mu_m^\trp \Sigma^{-1}(\Sigma^{-1} + D)^{-1}\Sigma^{-1}\mu_m +2 \mu_m^\trp \Sigma^{-1}(\Sigma ( \Sigma + D^{-1} )^{-1}) D^{-1} \hat{\vx} )\\
+& =  -\tonehlf ( \hat{\vx}^\trp(\Sigma^{-1} + D)^{-1}\hat{\vx} + \mu_m^\trp \Sigma^{-1}(\Sigma^{-1} + D)^{-1}\Sigma^{-1}\mu_m +2 \mu_m^\trp \Sigma^{-1}(\Sigma^{-1} + D)^{-1} \hat{\vx} )\\
+& =  \tonehlf ( \hat{\vx}+\Sigma^{-1}\mu_m)^\trp(\Sigma^{-1} + D)^{-1}(\hat{\vx}+\Sigma^{-1}\mu_m) )\\
+& =  \tonehlf ( \frac{1}{\sigma_r^2} \vecr+ \frac{1}{\sigma_g^2} \diag(\veca) \vecg+\Sigma^{-1}\mu_m)^\trp(\Sigma^{-1} + D)^{-1}(\frac{1}{\sigma_r^2} \vecr+ \frac{1}{\sigma_g^2} \diag(\veca) \vecg+\Sigma^{-1}\mu_m) )\\
+\end{align*}
+Which is equivalent to the result of the alternative derivation.
+
+\subsection{Fourier-domain derivation}
+If the prior over $m(t)$ is stationary, then we can approximate
+$\Sigma_m$ as circulant, which has a diagonal representation in the
+Fourier domain:
+\begin{equation}
+\Sigma_M = U S U\trp 
+\end{equation}
+where $U\trp$ is the discrete Fourier transform operator and the
+diagonal of $S$ is the Fourier power spectrum of the autocovariance of
+$m(t)$. 
+
+\section{Point estimates for prior moments}
+With a Gaussian process prior over the motion artifacts, and activity, we assume stationarity over both $a(t)$ and $m(t)$.  This means that we can define the means and covariances as functions independent of absolute time by
+\begin{eqnarray}
+\mu_a &=&\E[a(t)], \\
+\mu_m&=&\E[m(t)],  \\
+R_a(\tau) &=& \text{Cov}[a(t)a(t')],\\
+R_m(\tau) &=& \text{Cov}[m(t)m(t')],\\
+R_{a,m}(\tau) &=& \text{Cov}[a(t)m(t')],
+\end{eqnarray}
+ where $\tau  = t-t'$.  
+ 
+Based on these definitions and the model defined by (\ref{eq:rfp}) and (\ref{eq:gcamp}), we can derive the mean and covariances of the RFP and GCaMP:
+ \begin{eqnarray}
+\mu_r &=&\mu_m, \label{mur}\\
+\mu_g&=&R_{a,m}(0) + \mu_a\mu_m, \label{mug} \\
+R_r(\tau) &=& R_m(\tau)+\sigma^2_r\delta(\tau),\label{Rr}\\
+R_g(\tau) &=& R_a(\tau)R_m(\tau)+R_{a,m}(\tau)R_{m,a}(\tau) +\mu_a^2R_{m}(\tau)+\mu_m^2R_{a}(\tau)+\sigma^2_g\delta(\tau),\label{Rg}\\
+R_{r,g}(\tau) &=& \mu_mR_{a,m}(\tau)+\mu_aR_{m}(\tau),\label{Rrg}
+\end{eqnarray}
+where $\delta(\tau)$ is the Dirac delta function.
+
+Equations (\ref{mur}-\ref{Rrg}), along with parametric forms for $R_a(\tau)$ and $R_m(\tau)$ give us a way to estimate the unobserved moments of $a(t)$ and $m(t)$ from the estimated moments of $r(t)$ and $a(t)$.
+
+\subsection{Point estimates of covariances}
+Point estimates of the parameters of the $m(t)$ and $a(t)$ priors can be derived as follows.
+\begin{enumerate}
+\item Obtain sample estimates of $\mu_r$, $\mu_g$, $R_g(\tau)$, $R_r(\tau)$, and $R_{r,g}(\tau)$.
+\item Set $\hat{\mu}_m = \hat{\mu}_r$ and fit parametric form for $R_m(\tau)$ and $\sigma^2_r$ to equation (\ref{Rr}) or by maximum marginal likelihood.
+
+\item Plug in $\hat{R}_m(\tau)$, $\hat{\mu}_m$ into (\ref{Rr}) and (\ref{Rrg}) and use these equations to obtain $\hat{R}_{a,m}(0)$, $\hat{\mu}_a$ by
+\begin{equation}
+\left(\begin{array}{c}\hat{R}_{a,m}(0)\\\hat{\mu}_a\end{array}\right)=\left(
+\begin{array}{cc}
+1 & \hat{\mu}_m\\
+\hat{\mu}_m & \hat{R}_m(0)\\
+\end{array}
+\right)\inv\left(
+\begin{array}{c}
+\hat{\mu}_g\\
+\hat{R}_{r,g}(0)
+\end{array}
+\right)
+\end{equation}
+\item Set $\hat{R}_{a,m}(\tau) = \hat{\mu}_m\inv(R_{r,g}(\tau) - \hat{\mu}_a\hat{R}_m(\tau))$
+\item Fit the parametric form of $R_a(\tau)$ and $\sigma_g^2$ either by equation (\ref{Rg}).
+\end{enumerate}
+
+
+
+\section{Multiunit derivation of activity likelihood}
+We can extend the single-neuron model to the multi neuronal case in the following way.  
+
+\subsection{Likelihood of all motion artifacts}
+Let the RFP time series for neuron $i$ at time $t$ be denoted $r_i(t)$ and the vector of all neurons at time $t$ be given by $\vecr(t)$. Similar notation applies to GcAMP data, where the vector of all neurons at time $t$ is $\vecg(t)$.  The vector of movement artifacts at each neuron are given by $\vecm(t)$.
+
+The observations can be described by
+\begin{eqnarray}
+\vecr(t)&=&\vecm(t) + \veps_r(t)\\
+\vecg(t)&=&\matA(t)\vecm(t) + \vecb + \veps_g(t)
+\end{eqnarray}
+where $\matA(t) = \text{diag}(\veca(t))$, with $\veca(t)$ the calcium activity of all neurons at time $t$, $\vecb$ a constant offset, and $\veps_x(t)\sim\mathcal{N}(0,\matD_x)$, where $\epsilon_x = (\epsilon_r\trp,\epsilon_g\trp)\trp$ are the independent RFP and GcAMP noise terms with $\matD_x\equiv\text{blkdiag}(\matD_r,\matD_g)$ is a diagonal matrix. 
+
+Letting $\vecr = (\vecr(1)\trp,\dots,\vecr(T)\trp)\trp$ and $\vecg = (\vecg(1)\trp,\dots,\vecg(T)\trp)\trp$ be the concatenated vectors of RFP and GcAMP across time and neurons, the induced conditional distributions of the observations are given by
+\begin{eqnarray}
+\label{rliklihood}\vecr|\matM&\sim&\mathcal{N}(\vecm,\eye_T\otimes\matD_r)\\
+\vecg |\matA,\matM&\sim&\mathcal{N}(\matA\vecm,\eye_T\otimes\matD_g)\label{gliklihood},
+\end{eqnarray}
+where $\matM = (\vecm(1),\dots,\vecm(T))$, $\vecm = \text{vec}(\matM)$ and $\matA = \text{blkdiag}(\matA(1),\dots,\matA(T))$.  
+The resulting conditional distribution of $\vecx \equiv (\vecr\trp,\vecg\trp)\trp$ is given by
+\begin{equation}\label{condx}
+\vecx|\tA,\vecm \sim\mathcal{N}(\tA\vecm,\matD),
+\end{equation}
+where
+\[
+\tA = \left(
+\begin{array}{c}
+\eye_{nT}\\
+\matA
+\end{array}
+\right)
+\]
+and
+$\matD \equiv \text{blkdiag}(\eye_T\otimes\matD_r,\eye_T\otimes\matD_g)$. 
+
+
+\subsection{Prior over motion}
+Suppose that the motion artifacts are also normally distributed and that the instantaneous covariance between the motion artifacts across neurons is $\matC_n$.  We can then say that the distribution of motion artifacts at each time is given by $\vecm(t)\sim\mathcal{N}(\mu,\matC_n)$, where $\mu = (\mu_1,\dots,\mu_n)\trp$ is a constant mean vector of offsets.
+If, in addition, we let each time course of the motion artifact be a realization of a Gaussian process with stationary covariance $\matC_T$ (with parameter notation suppressed), then the vector of motion artifacts for neuron $i$ will be distributed as $\vecm_i\sim\mathcal{GP}(\mathbf{1}_T\mu_i,\matC_T)$, where $\mathbf{1}_T$ is a vector of $T$ 1's. 
+
+ The above model for the motion artifacts can be summarized by a matrix normal distribution
+\begin{equation}\label{moprior}
+\matM\sim\mathcal{MN}(\mu\mathbf{1}_T\trp,\matC_n,\matC_T)
+\end{equation}
+with row covariance $\matC_m$ and column covariance $\matC_T$.The corresponding distribution for the vectorized motion artifacts $\vecm = \text{vec}(\matM)$ is given by
+\[
+\vecm\sim \mathcal{N}(\text{vec}(\mu\mathbf{1}_T\trp),\matC_m),
+\]
+where $\matC_m = \matC_n\otimes\matC_T$.
+
+\subsection{Marginal distribution of $\vecx$}
+Given the likelihood for $\vecm$ given in (\ref{condx}) and the prior described by (\ref{moprior}), we can marginalize over the motion artifacts $\vecm$ to get a distribution of the observations $\vecx$ that is dependent only on the calcium activity;
+\[
+\vecx|\tA \sim\mathcal{N}(\margmu,\matSig),
+\]
+where 
+\[\margmu\equiv\tA\mu + \left(
+\begin{array}{c}
+\mathbf{0}\\
+\mathbf{1}_T\otimes \vecb
+\end{array}
+\right)
+\]
+and 
+\[
+\matSig\equiv \matC+\matD,
+\]
+where $\matC\equiv\tA(\matC_T\otimes\matC_n)\tA\trp$.
+
+The resulting log-likelihood is therefore 
+\[
+\mathcal{L}(\veca|\vecx) \propto -\tfrac{1}{2}(\log|\matSig| + (\vecx-\margmu)\trp\matSig\inv(\vecx-\margmu))
+\]
+\subsubsection{Some tricks for implementation}
+The Woodbury inversion lemma provides
+\[
+\matSig\inv = \matD\inv - \matD\inv\tA\left(\matC\inv + \tA\trp\matD\inv\tA\right)\inv\tA\trp\matD\inv,
+\]
+where we note that $\matD$ is a diagonal matrix and 
+\[
+\matC\inv = \matC_T\inv\otimes\matC_n\inv
+\]
+Matrix determinant lemma gives
+\begin{eqnarray}
+|\matSig|  &=& |\matC\inv + \tA\trp \matD \inv \tA||\matC||\matD|\\
+&=&|\matC\inv + \tA\trp\matD\inv\tA||\matC_n|^T|\matC_T|^n|\matD_r|^T|\matD_g|^T
+\end{eqnarray}
+\section{Next steps}
+Note that we have assumed above that we know the noise variances $\vr$
+and $\vg$, which we don't of course in practice. We could of course
+set them by cross-validation, or place a prior on them and integrate
+them out, although hopefully we can get some useful information about
+them from the RFP/GFP recordings.  (As Nick noted, we could estimate
+both from the anaesthetized animal!)
+
+
+Other possible directions: 
+\begin{itemize}
+\item placing more useful priors on $m(t)$ and $a(t)$. 
+\item using RFP from many neurons
+\item using head position / body position
+\item using something spit out from the motion-correction algorithm
+  itself (this could be quite useful!)
+\item worth considering an additive instead of a multiplicative model
+  of interaction between $m(t)$ and $a(t)$?
+\end{itemize}
+
+
+
+%-------------------------------------------------------------------------- 
+%\bibliographystyle{apalike}
+%\bibliography{bibfile.bib}
+
+\end{document} 

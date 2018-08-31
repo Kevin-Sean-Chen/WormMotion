@@ -1,0 +1,207 @@
+\documentclass[11pt]{article}
+\usepackage[pdftex]{graphicx} 
+\usepackage[comma,numbers,sort&compress]{natbib} % round/square, authoryear/numbers
+\usepackage{amsfonts,amsmath,amssymb,amsthm} % various math stuff
+% \usepackage[compact]{titlesec}  % Allow compact titles
+\usepackage{sectsty} % Allows for section style to be manipulated
+\usepackage{wrapfig}  % Allow wrapping of text around figures
+\usepackage{mdwlist}  % Make list items closer together: itemize*, enumerate*
+\usepackage{sidecap}  % For putting caption beside figure
+\usepackage{url} % for web links
+
+% ==  FONT  ===========================
+% % ---- uncomment for Palatino -------------
+% \usepackage{palatino} 
+% ---- uncomment for Helvetica (sansserif)  -------------
+\usepackage[T1]{fontenc}
+\usepackage[scaled]{helvet}
+\renewcommand*\familydefault{\sfdefault}  % If the base font of the document is to be sans serif
+
+% ======= File locations =================
+\input{jpdefs} % define some useful latex commands
+%\newcommand{\figdir}{figs}  % fig directory
+
+% ---- Control paragraph spacing and indenting  -------------------
+\setlength{\textheight}{9in} % 11 - ( 1.5 + \topmargin + <bottom-margin> )
+\setlength{\textwidth}{6.5in} % 8.5 - 2 * ( 1 + \oddsidemargin )
+\setlength{\topmargin}{ -0.5in}  % in addition to 1.5'' standard margin
+\setlength{\oddsidemargin}{0in} % in addition to 1'' standard
+\setlength{\parindent}{0em}  % indentation 
+\setlength{\parskip}{1ex} % paragraph gap 
+\setlength{\headsep}{0.0in}
+\setlength{\headheight}{0.0in}
+% \raggedbottom  % allows pages to have differing text height 
+\allowdisplaybreaks  % allow multi-line equations to continue on the next page
+
+% % ----- Control for sectioning commands -------------------------
+% \renewcommand\baselinestretch{0.94}\large\normalsize
+% \titlespacing{\section}{0pt}{3pt}{-.5\parskip}   % Margin; Above; Below
+% \titlespacing{\subsection}{0pt}{*0}{-.5\parskip}
+% \titlespacing{\subsubsection}{0pt}{*0}{-.5\parskip}
+% \renewcommand{\refname}{References Cited}
+% \sectionfont{\large} 
+% \subsectionfont{\normalsize} 
+% \subsubsectionfont{\it}
+
+% ----- Float (figure) positioning --------------------------------------
+\setcounter{topnumber}{1}  % max # floats at top of page
+\setcounter{bottomnumber}{1} % max # at bottom of page
+\setcounter{totalnumber}{1} % max floats on a page
+\renewcommand{\topfraction}{1} % max frac for floats at top
+\renewcommand{\bottomfraction}{1} % max for floats at bottom
+\renewcommand{\textfraction}{0} % minimum fraction of page for text
+%\setlength{\textfloatsep}{.2in}  % separation between figure and text
+
+
+% -----  New definitions ------------------
+\newcommand{\figref}[1]{Fig.~\ref{fig:#1}}  % use for citing figs
+\renewcommand{\eqref}[1]{eq.~\ref{eq:#1}}
+
+% -----  Math symbols --------------------
+\newcommand{\LL}{\mathcal{L}}
+\newcommand{\vr}{\sigma^2_r}
+\newcommand{\vm}{\sigma^2_m}
+\newcommand{\vg}{\sigma^2_g}
+\newcommand{\va}{\sigma^2_a}
+\newcommand{\vv}{\mathbf{v}}
+\newcommand{\vx}{\mathbf{x}}
+\newcommand{\vecr}{\mathbf{r}}
+\newcommand{\vecg}{\mathbf{g}}
+\newcommand{\vecm}{\mathbf{m}}
+\newcommand{\veca}{\mathbf{a}}
+\newcommand{\matA}{\mathbf{A}}
+\newcommand{\matD}{\mathbf{D}}
+\newcommand{\veps}{\mathbf{\epsilon}}
+\newcommand{\matC}{\mathbf{C}}
+\newcommand{\vecb}{\mathbf{b}}
+\newcommand{\vecx}{\mathbf{x}}
+\newcommand{\matM}{\mathbf{M}}
+\newcommand{\tA}{\tilde{\mathbf{A}}}
+\newcommand{\eye}{\mathbf{I}}
+\newcommand{\margmu}{\tilde{\mathbf{\mu}}}
+\newcommand{\matSig}{\mathbf{\Sigma}}
+% ====================================================
+\begin{document}
+% % ----- Math spacing commands that have to be within document ----------
+% \abovedisplayskip=2pt  % spacing above an equation
+% \belowdisplayskip=2pt  % spacing below an equation
+% %\abovedisplayshortskip=-5pt
+% % \belowdisplayshortskip=-5pt
+% % --------------------------------------------------------------
+
+
+% % --- Publication note ---------
+%\vbox to 0.2in{ \vspace{-.3in}
+% \small\tt  Draft Information
+% \vfil}
+
+% Title
+\title{Fragments from: Notes on motion artifact removal in C Elegans data}
+% \author{Jonathan W. Pillow}
+
+\maketitle
+
+\setspacing{1.1}
+\hbox to \textwidth{\hrulefill} 
+\vspace{-.1in}
+% Abstract
+Some notes on how to model the motion artifacts
+in GCaMP fluorescence measurements. (And, hopefully, remove them!) \\
+\hbox to \textwidth{\hrulefill}
+%--------------------------------------------------------------------------
+
+\vspace{.5in}
+
+
+\section{OLD STUFF (no longer up to date)}
+
+I believe this stuff all applies if we assume a flat prior over
+$m(t)$, i.e., $\vm = \infty$.
+
+We can regard the conditional distribution of the motion artifact as:
+\begin{equation}
+m(t)\, |\, r(t)  \sim \Nrm(r(t), \vr).
+\end{equation}
+This allows us to marginalize over $m(t)$ using (\eqref{GCaMP}) and
+the appropriate ``Gaussian fun facts", giving:
+\begin{equation}
+g(t)\, |\, r(t),a(t)  \sim \Nrm\Big(a(t)r(t),\, a(t)^2 \vr + \vg\Big).
+\end{equation}
+This is everything we need to do maximum likelihood inference for
+$a(t)$, the quantity of interest.  I will drop the time index since
+the current model treats each time bin independently.  (This is
+something we might wish to relax later, since presumably both
+activity-related fluorescence and motion artifact have time
+dependencies).  
+
+Neglecting $a$-independent constants, we have log-likelihood:
+\begin{equation}
+\LL \triangleq \log p(g|r,a)  = - \tonehlf \log (a^2 \vr + \vg) - \tonehlf
+\frac{(g-ar)^2}{a^2\vr + \vg}.  \label{eq:logli}
+\end{equation}
+
+
+\subsection{Neglecting RFP noise}
+Just for interest's sake, let's start by considering what happens when
+either noise variance goes to zero.  When the assumed RFP-related
+noise variance is zero, $\vr=0$, then we're assuming the RFP
+measurements give us perfect access to the motion artifact, and in
+this case we recover the divisive correction that the Leifer lab is
+currently using.  Neglecting constants, we'd have:
+\begin{equation}
+\LL = \frac{-(g-ar)^2}{2\vg}
+\end{equation}
+which implies, obviously:
+\begin{equation}
+\hat a_{ML} = \frac{g}{r}
+\end{equation}
+
+\subsection{Neglecting GCaMP noise}
+Ok, that's not so interesting.  Let's look at what happens if we
+instead neglect noise in the GCaMP signal, so $\vg = 0$. Then we get
+(again, neglecting terms that don't involve $a$):
+\begin{equation}
+\LL =  -\log (a)   -  \frac{(g-ar)^2}{2a^2\vr}
+\end{equation}
+Differentiating this and setting to zero gives us:
+\begin{equation}
+\frac{\partial}{\partial a} \LL  =  -\frac{1}{a}  + \frac{g^2}{a^3
+  \vr} - \frac{gr}{a^2\vr}  = 0,
+\end{equation}
+which (if we multiply by $-a^3 \vr$) implies
+\begin{equation}
+a^2 \vr + a (gr) - g^2 = 0,
+\end{equation}
+which has solution
+\begin{equation}
+\hat a_{ML} =  g \left( \mathrm{sign}(r) \frac{\sqrt{r^2 + 4\vr} - |r|}{2\vr}\right).
+\end{equation}
+(Note that it takes a little bit of extra work to see that we need the
+$\mathrm{sign}(r)$ and absolute value $|r|$, but I'm pretty sure this
+is right---it gives the intuitively correct answer, which is that the
+inferred $a$ has the same sign as $g/r$). 
+
+And although it isn't obvious, it's reassuring to see that if you take
+the limit of this solution as $\vr \rightarrow 0$, you get back the
+same solution, $\hat a = g/r$. For finite $\vr$, the estimated $\hat
+a_{ML}$ lies between $g/r$ and 0, meaning it's shrunk towards zero by
+an amount that depends on the assumed noise variance $\vr$. And,
+(happily) the estimate doesn't go to infinity at $r=0$, taking instead
+a maximum (absolute) value  $|g|/\sigma_r$.
+
+\subsection{Incorporating both noise terms}
+
+When we include both noise sources, then differenting the
+log-likelihood (\eqref{logli}) looks like it's going to give us a
+third-order polynomial (but I haven't checked carefully).  Luckily,
+these also have an analytic solution (\url{https://en.wikipedia.org/wiki/Cubic_function#General_formula_for_roots})
+but perhaps someone wants to use Mathematica to check this (ask Adam
+for help if necessary!) rather than wasting the paper?
+
+
+
+%-------------------------------------------------------------------------- 
+%\bibliographystyle{apalike}
+%\bibliography{bibfile.bib}
+
+\end{document} 
