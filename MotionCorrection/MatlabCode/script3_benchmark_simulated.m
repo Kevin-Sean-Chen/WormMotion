@@ -14,10 +14,16 @@ Km = kSE(rho_m,lm,tt); % the T x T GP covariance
 % Find low-rank approximation to Km using SVD
 [Um,Sm] = svd(Km);
 thresh = 1e12;  % threshold on condition number
-smdiag = diag(Sm); 
+smdiag = diag(Sm); subplot(221); imagesc(Km); axis image; title('GP prior covariance');
+subplot(222); imagesc(Kapprox); axis image; title('low-rank approximation');
+subplot(223); plot(tt,Km(:,1:50:T),'b',tt,Kapprox(:,1:50:T),'r--');
+title('slices');
 ii = max(smdiag)./smdiag < thresh;  % vector of indices to keep.
 krank = sum(ii); % rank
-Ubasis = Um(:,ii);  % basis for Km
+Ubasis = Um(:,ii);  % basis for Kmsubplot(221); imagesc(Km); axis image; title('GP prior covariance');
+subplot(222); imagesc(Kapprox); axis image; title('low-rank approximation');
+subplot(223); plot(tt,Km(:,1:50:T),'b',tt,Kapprox(:,1:50:T),'r--');
+title('slices');
 Ssqrt = spdiags(sqrt(smdiag(ii)),0,krank,krank); % diagonal matrix sqrt of eigenvalues
 Ksqrt = Ubasis*Ssqrt; % low-rank linear operator for generating from iid samples
 

@@ -22,7 +22,7 @@ krank = sum(ii); % rank
 Ubasis = Um(:,ii);  % basis for Km
 Ssqrt = spdiags(sqrt(smdiag(ii)),0,krank,krank); % diagonal matrix sqrt of eigenvalues
 Ksqrt = Ubasis*Ssqrt; % low-rank linear operator for generating from iid samples
-
+  
 % Generate movement artifact by sampling from GP
 mu_m = 1;  % mean of movement artifact m
 mm = Ksqrt*randn(krank,1) + mu_m; % movement artifact
